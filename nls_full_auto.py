@@ -12,6 +12,7 @@ NLS 18D CELL Full Automation Script
 import os
 import sys
 import time
+import json
 from datetime import datetime, date
 from pathlib import Path
 
@@ -228,6 +229,18 @@ def save_result_to_supabase(patient_id, analysis_text, image_count):
     except Exception as e:
         print(f"[SUPABASE] 저장 오류: {e}")
         return False
+
+
+def save_selected_patient(patient_id):
+    """선택된 환자 ID를 selected_patient.json에 저장 (patient_app과 공유)"""
+    try:
+        selected_file = PROJECT_ROOT / "selected_patient.json"
+        selected_file.write_text(
+            json.dumps({"patient_id": patient_id}), encoding="utf-8"
+        )
+        print(f"[SYNC] selected_patient.json 저장 완료")
+    except Exception as e:
+        print(f"[SYNC] 저장 실패: {e}")
 
 
 class NLSFullAutomation:
@@ -673,6 +686,7 @@ Respond in Spanish. No preamble, no disclaimers."""
                 return
 
         self.current_patient_id = patient_data.get("patient_id")
+        save_selected_patient(self.current_patient_id)
 
         print("\n" + "=" * 60)
         print("NLS 18D CELL Full Automation")
@@ -770,6 +784,7 @@ def main():
         patient_data = fetch_latest_patient()
         if patient_data:
             automation.current_patient_id = patient_data.get("patient_id")
+            save_selected_patient(automation.current_patient_id)
         else:
             print("[WARNING] 환자 데이터 없음 - 분석 결과가 Supabase에 저장되지 않습니다.")
         print("\n핫키 대기 모드 시작...")
