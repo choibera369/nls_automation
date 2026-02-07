@@ -246,17 +246,37 @@ class NLSFullAutomation:
     def activate_nls_window(self):
         """NLS 프로그램 창을 찾아서 맨 앞으로 가져오기 (3번 재시도)"""
         print("[WINDOW] NLS 창 찾는 중...")
-        
+
         nls_hwnd = None
-        
+        best_score = 0
+
         def callback(hwnd, param):
-            nonlocal nls_hwnd
+            nonlocal nls_hwnd, best_score
             if win32gui.IsWindowVisible(hwnd):
-                title = win32gui.GetWindowText(hwnd).lower()
-                if "the18dnls" in title or "18d" in title or "nls" in title:
+                title = win32gui.GetWindowText(hwnd)
+                title_lower = title.lower()
+
+                # 자기 자신(콘솔/자동화 창) 및 브라우저 제외
+                skip_keywords = (
+                    "nls_automation", "cmd.exe", "python",
+                    "chrome", "firefox", "edge", "opera", "brave",
+                    "explorer",
+                )
+                if any(kw in title_lower for kw in skip_keywords):
+                    return True
+
+                # 우선순위: the18dnls(정확한 프로그램) > 18d
+                score = 0
+                if "the18dnls" in title_lower:
+                    score = 3
+                elif "18d" in title_lower:
+                    score = 2
+
+                if score > best_score:
+                    best_score = score
                     nls_hwnd = hwnd
             return True
-        
+
         win32gui.EnumWindows(callback, None)
         
         if nls_hwnd:
@@ -731,24 +751,22 @@ def main():
     print("=" * 60)
     
     print("\n옵션을 선택하세요:")
-    print("1. 전체 워크플로우 실행 (Supabase 최신 환자)")
-    print("2. 핫키 대기 모드만 실행")
+    print("1. 전체 워크플로우 실행 (환자 검색 → NLS 자동 입력 → 스캔)")
+    print("2. 핫키 대기 모드만 실행 (스캔 완료 후 캡쳐/분석)")
     print("3. 기존 사용자 삭제 후 전체 실행")
-    print("4. 테스트 캡쳐 (1페이지만)")
-    print("5. Supabase 최신 환자 데이터 확인")
     print("0. 종료")
 
-    choice = input("\n선택 (0-5): ").strip()
-    
+    choice = input("\n선택 (0-3): ").strip()
+
     automation = NLSFullAutomation()
-    
+
     if choice == "1":
         print("\n3초 후 시작합니다. NLS 프로그램이 열려있는지 확인하세요...")
         time.sleep(3)
         automation.run_full_workflow()
-        
+
     elif choice == "2":
-        print("\n[SUPABASE] 최신 환자 데이터 조회 중...")
+        print("\n[SUPABASE] 환자 검색 중...")
         patient_data = fetch_latest_patient()
         if patient_data:
             automation.current_patient_id = patient_data.get("patient_id")
@@ -756,35 +774,13 @@ def main():
             print("[WARNING] 환자 데이터 없음 - 분석 결과가 Supabase에 저장되지 않습니다.")
         print("\n핫키 대기 모드 시작...")
         automation.wait_for_hotkey_workflow()
-        
+
     elif choice == "3":
         print("\n3초 후 시작합니다. NLS 프로그램이 열려있는지 확인하세요...")
         time.sleep(3)
         automation.cleanup_existing_user()
         time.sleep(1)
         automation.run_full_workflow()
-        
-    elif choice == "4":
-        print("\n테스트 캡쳐 (1페이지)...")
-        time.sleep(2)
-        
-        x1, y1 = RESULT_CAPTURE["capture_region_start"]
-        x2, y2 = RESULT_CAPTURE["capture_region_end"]
-        width = x2 - x1
-        height = y2 - y1
-        
-        screenshot = pyautogui.screenshot(region=(x1, y1, width, height))
-        test_path = automation.screenshots_dir / "test_capture.png"
-        screenshot.save(str(test_path))
-        print(f"저장됨: {test_path}")
-        
-    elif choice == "5":
-        print("\n[SUPABASE] 최신 환자 데이터 조회...")
-        data = fetch_latest_patient()
-        if data:
-            print("\n조회 완료. 위 데이터로 옵션 1을 실행하면 NLS에 자동 입력됩니다.")
-        else:
-            print("\n환자 데이터가 없습니다.")
 
     elif choice == "0":
         print("종료합니다.")
