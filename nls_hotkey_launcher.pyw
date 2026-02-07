@@ -1,6 +1,7 @@
 """
 NLS Hotkey Launcher
 Ctrl+Alt+N = NLS Auto Run
+Shift+Ctrl+Alt+P = NLS Auto Run (alternative)
 Ctrl+Alt+P = Patient App
 """
 
@@ -38,7 +39,7 @@ if ctypes.windll.kernel32.GetLastError() == 183:
 import keyboard
 
 DESKTOP = os.path.join(os.path.expanduser("~"), "Desktop")
-NLS_BAT = "nls_auto_run.bat"
+NLS_BAT = "NLS_Auto.bat"
 PATIENT_BAT = "patient_app_run.bat"
 COOLDOWN = 3.0
 
@@ -84,7 +85,8 @@ def launch_patient():
     log("Patient App launched!")
 
 
-keyboard.add_hotkey("ctrl+alt+n", launch_nls, suppress=True, trigger_on_release=True)
-keyboard.add_hotkey("ctrl+alt+p", launch_patient, suppress=True, trigger_on_release=True)
-log("Hotkey listener started (Ctrl+Alt+N / Ctrl+Alt+P)")
+keyboard.add_hotkey("ctrl+alt+n", launch_nls, trigger_on_release=True)
+keyboard.add_hotkey("ctrl+alt+p", launch_patient, trigger_on_release=True)
+keyboard.add_hotkey("ctrl+alt+shift+p", launch_nls, trigger_on_release=True)
+log("Hotkey listener started (Ctrl+Alt+N / Ctrl+Alt+P / Ctrl+Alt+Shift+P)")
 keyboard.wait()
